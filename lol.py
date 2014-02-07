@@ -38,6 +38,9 @@ class StreamParser:
 		self.url = "https://api.twitch.tv/kraken/streams"
 		self.game_list = []
 		self.stream_list = None
+
+                # description_list for SpeedRunsLive streams (different API)
+                self.description_list = None
 		# CHECK FOR CONFIGURATION FILE~!
 
 
@@ -63,7 +66,7 @@ class StreamParser:
 		for i in range(0, len(self.stream_list)):
 			index = str(i) + ") "
 			stream = self.stream_list[i]
-			streamer = stream["channel"]["name"].encode('ascii', 'ignore')
+                        streamer = stream["channel"]["name"].encode('ascii', 'ignore')
 			if len(streamer + index) < 8:
 				streamer += "\t"
 			if len(streamer + index) < (8*2):
@@ -80,6 +83,25 @@ class StreamParser:
 			i += 1
 
 
+        def print_team_streams(self):
+                for i in range(0, len(self.stream_list)):
+                        index = str(i) + ") "
+                        streamer = self.stream_list[i]
+                        description = self.description_list[i]
+                        if len(streamer + index) < 8:
+                                streamer += "\t"
+                        if len(streamer + index) < (8*2):
+                                streamer += "\t"
+                        streamer += "\t"
+                        if description:
+                                if len(description) > (self.term_width-24):
+                                        description = description[0:(self.term_width-28)] + "..."
+                        else:
+                                description = ""
+                        print index + streamer + description
+                        i += 1
+
+
 	"""
 	find_popular_games stores the names of the top self.num games, sorted by
 	viewers, into self.game_list
@@ -93,7 +115,7 @@ class StreamParser:
 		for i in range(0, len(top_games)):
 			raw = top_games[i]["game"]["name"]
 			s = raw.encode('ascii', 'ignore')
-			self.game_list.append(s)
+			self.game_list.append(s)                        
 
 
 	"""
@@ -116,6 +138,21 @@ class StreamParser:
 		self.stream_list = []
 		for i in range(0, len(json_data["streams"])):
 			self.stream_list.append(json_data["streams"][i])
+
+
+        """
+        gets a list of live SpeedRunsLive streams and stores them in
+        self.stream_list
+        """
+        def get_team_streams(self, offset=0):
+                params = {"limit": self.num, "offset": offset}
+                raw_data = requests.get("http://api.twitch.tv/api/team/srl/live_channels.json", params = params)
+                json_data = raw_data.json()
+                self.stream_list = []
+                self.description_list = []
+                for live_channel in json_data["channels"]:
+                        self.stream_list.append(live_channel["channel"]["name"])
+                        self.description_list.append(live_channel["channel"]["description"])
 
 
 	def output_data(self, filename="data.txt"):
@@ -155,6 +192,7 @@ def main():
 	print "0.  Featured"
 	print "1.  Games"
 	print "2.  Favorites"
+        print "3.  SpeedRunsLive"
 	selection = selection_loop(3)
 
 	# We load 10 items at a time, and we'll load more using the pagination thingy to load items faster.
@@ -202,6 +240,12 @@ def main():
 			i += 1
 
 		chosen_stream = parser.stream_list[stream_selection]["channel"]["name"]
+
+        elif int(selection) == 3:
+                parser.get_team_streams()
+                parser.print_team_streams()
+                stream_selection = selection_loop(parser.num)
+                chosen_stream = parser.stream_list[stream_selection]
 
 	else:
 		pass
