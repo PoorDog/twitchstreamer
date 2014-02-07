@@ -39,8 +39,9 @@ class StreamParser:
 		self.game_list = []
 		self.stream_list = None
 
-                # description_list for SpeedRunsLive streams (different API)
+                # description_list and viewers_list for SpeedRunsLive streams (different API)
                 self.description_list = None
+                self.viewers_list = None
 		# CHECK FOR CONFIGURATION FILE~!
 
 
@@ -88,17 +89,19 @@ class StreamParser:
                         index = str(i) + ") "
                         streamer = self.stream_list[i]
                         description = self.description_list[i]
+                        viewers = self.viewers_list[i]
                         if len(streamer + index) < 8:
                                 streamer += "\t"
                         if len(streamer + index) < (8*2):
                                 streamer += "\t"
-                        streamer += "\t"
+                        streamer += " "
+                        viewers += "\t"
                         if description:
                                 if len(description) > (self.term_width-24):
                                         description = description[0:(self.term_width-28)] + "..."
                         else:
                                 description = ""
-                        print index + streamer + description
+                        print index + streamer + viewers + description
                         i += 1
 
 
@@ -115,7 +118,7 @@ class StreamParser:
 		for i in range(0, len(top_games)):
 			raw = top_games[i]["game"]["name"]
 			s = raw.encode('ascii', 'ignore')
-			self.game_list.append(s)                        
+			self.game_list.append(s)
 
 
 	"""
@@ -150,9 +153,11 @@ class StreamParser:
                 json_data = raw_data.json()
                 self.stream_list = []
                 self.description_list = []
+                self.viewers_list = []
                 for live_channel in json_data["channels"]:
                         self.stream_list.append(live_channel["channel"]["name"])
-                        self.description_list.append(live_channel["channel"]["description"])
+                        self.description_list.append(live_channel["channel"]["title"])
+                        self.viewers_list.append(str(live_channel["channel"]["current_viewers"]))
 
 
 	def output_data(self, filename="data.txt"):
